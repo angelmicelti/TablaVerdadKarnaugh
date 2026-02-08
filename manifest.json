@@ -2,7 +2,7 @@
   "name": "Generador Lógico",
   "short_name": "GeneradorLogico",
   "description": "Generador de funciones lógicas con tablas de verdad",
-  "start_url": ".",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f0f4f8",
   "theme_color": "#8b5cf6",
