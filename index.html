@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Función Lógica</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top to allow scrolling if content is long */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            padding: 2rem;
+            max-width: 900px;
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px; /* Add some bottom margin */
+        }
+        .output-cell {
+            width: 40px; /* Fixed width for output input */
+            height: 36px; /* Match input height for visual consistency */
+            text-align: center;
+            cursor: pointer; /* Indicate it's clickable */
+            user-select: none; /* Prevent text selection on double click */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #cbd5e1; /* Add border to look like an input */
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: bold;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        .output-cell[data-value="0"] {
+            background-color: #f8fafc; /* Light background for 0 */
+            color: #334155;
+        }
+        .output-cell[data-value="1"] {
+            background-color: #d1fae5; /* Light green for 1 */
+            color: #065f46;
+        }
+        .output-cell[data-value="X"] {
+            background-color: #fffbeb; /* Light yellow for X */
+            color: #b45309;
+        }
+        .output-cell:hover {
+            filter: brightness(0.95); /* Slightly darker on hover */
+        }
+        .table-header-cell {
+            padding: 0.75rem;
+            text-align: center;
+            font-weight: bold;
+            background-color: #e2e8f0; /* Light gray for headers */
+            border-bottom: 2px solid #cbd5e1;
+        }
+        .table-cell {
+            padding: 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .table-row:last-child .table-cell {
+            border-bottom: none; /* No border for the last row */
+        }
+
+        /* Karnaugh Map Styles */
+        #karnaughMapContainer {
+            display: grid; /* Set to grid by JS */
+            border: 1px solid #475569; /* Darker border for the map itself */
+            border-radius: 0.25rem;
+            overflow: hidden; /* Ensures rounded corners apply to cells */
+            margin-top: 1rem;
+            background-color: #ffffff; /* Ensure background for cells */
+        }
+        .kmap-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #e2e8f0;
+            font-weight: bold;
+            background-color: #ffffff;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .kmap-cell.covered-by-implicant {
+            background-color: #a7f3d0; /* Light green for cells covered by a prime implicant */
+            border: 2px solid #10b981; /* Stronger border */
+        }
+        .kmap-header-cell {
+            width: 50px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            background-color: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .kmap-label {
+            font-weight: bold;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e2e8f0; /* Background for labels */
+            border: 1px solid #cbd5e1;
+            /* Ensure labels fill their grid area */
+            width: 100%;
+            height: 100%;
+        }
+        .kmap-corner-spacer {
+            width: 50px; /* Match header cell width */
+            height: 30px; /* Match header cell height */
+            background-color: transparent;
+            border: 1px solid transparent; /* Invisible border to match grid */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Generador de Función Lógica</h1>
+
+        <!-- Variable Selection Section -->
+        <div class="mb-8 p-6 bg-blue-50 rounded-lg shadow-inner">
+            <h2 class="text-xl font-semibold mb-4 text-blue-800">Paso 1: Selecciona el número de variables</h2>
+            <div class="flex flex-wrap gap-4 justify-center">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="numVariables" value="2" checked class="form-radio h-5 w-5 text-blue-600 focus:ring-blue-500 rounded-full">
+                    <span class="ml-2 text-gray-700 font-medium">2 Variables (A, B)</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="numVariables" value="3" class="form-radio h-5 w-5 text-blue-600 focus:ring-blue-500 rounded-full">
+                    <span class="ml-2 text-gray-700 font-medium">3 Variables (A, B, C)</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="radio" name="numVariables" value="4" class="form-radio h-5 w-5 text-blue-600 focus:ring-blue-500 rounded-full">
+                    <span class="ml-2 text-gray-700 font-medium">4 Variables (A, B, C, D)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Truth Table Section -->
+        <div id="truthTableContainer" class="mb-8 p-6 bg-green-50 rounded-lg shadow-inner">
+            <h2 class="text-xl font-semibold mb-4 text-green-800">Paso 2: Completa la Tabla de Verdad</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                    <thead>
+                        <tr id="tableHeaders" class="bg-gray-100">
+                            <!-- Headers will be generated here by JS -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Table rows will be generated here by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Generate Function Button -->
+        <div class="text-center mb-8">
+            <button id="generateBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300">
+                Generar Función Lógica
+            </button>
+        </div>
+
+        <!-- Result Section -->
+        <div id="resultContainer" class="p-6 bg-yellow-50 rounded-lg shadow-inner hidden">
+            <h2 class="text-xl font-semibold mb-4 text-yellow-800">Paso 3: Funciones Lógicas Generadas</h2>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Suma de Productos (SOP):</h3>
+                <p id="logicalFunctionSOP" class="text-xl font-mono bg-yellow-100 p-4 rounded-md border border-yellow-200 text-gray-800 break-words"></p>
+                <p id="noFunctionMessageSOP" class="text-lg text-gray-600 hidden">No se generó ninguna función SOP (todos los resultados de salida fueron '0' o 'X').</p>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Expresión Simplificada:</h3>
+                <p id="logicalFunctionSimplified" class="text-xl font-mono bg-yellow-100 p-4 rounded-md border border-yellow-200 text-gray-800 break-words"></p>
+                <p id="noFunctionMessageSimplified" class="text-lg text-gray-600 hidden">No se generó una expresión simplificada (todos los resultados de salida fueron '0' o 'X').</p>
+            </div>
+
+            <!-- Karnaugh Map Section -->
+            <div id="karnaughMapSection" class="mt-8 hidden">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Mapa de Karnaugh:</h3>
+                <div id="karnaughMapContainer">
+                    <!-- K-map will be generated here by JS -->
+                </div>
+                <p id="noKmapMessage" class="text-lg text-gray-600 hidden text-center mt-4">No se puede generar el Mapa de Karnaugh si no hay minterms (salidas '1' o 'X').</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const numVariablesRadios = document.querySelectorAll('input[name="numVariables"]');
+        const tableHeaders = document.getElementById('tableHeaders');
+        const tableBody = document.getElementById('tableBody');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const logicalFunctionSOPDisplay = document.getElementById('logicalFunctionSOP');
+        const noFunctionMessageSOP = document.getElementById('noFunctionMessageSOP');
+        const logicalFunctionSimplifiedDisplay = document.getElementById('logicalFunctionSimplified');
+        const noFunctionMessageSimplified = document.getElementById('noFunctionMessageSimplified');
+        const karnaughMapSection = document.getElementById('karnaughMapSection');
+        const karnaughMapContainer = document.getElementById('karnaughMapContainer');
+        const noKmapMessage = document.getElementById('noKmapMessage');
+
+        let currentNumVariables = 2; // Default number of variables
+        const variableNames = ['A', 'B', 'C', 'D'];
+
+        // Helper function to convert decimal to binary string with padding
+        function decToBinary(dec, numVars) {
+            return dec.toString(2).padStart(numVars, '0');
+        }
+
+        // Helper function to count set bits (1s) in a binary string
+        function countSetBits(binaryString) {
+            let count = 0;
+            for (let i = 0; i < binaryString.length; i++) {
+                if (binaryString[i] === '1') {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        // Helper function to check if two binary strings differ by exactly one bit
+        // Returns the combined string with '-' or null if not combinable
+        function compareTerms(term1, term2) {
+            if (term1.length !== term2.length) return null;
+
+            let diffCount = 0;
+            let diffIndex = -1;
+            let combinedTerm = '';
+
+            for (let i = 0; i < term1.length; i++) {
+                if (term1[i] !== term2[i]) {
+                    diffCount++;
+                    diffIndex = i;
+                }
+                combinedTerm += term1[i];
+            }
+
+            if (diffCount === 1) {
+                return combinedTerm.substring(0, diffIndex) + '-' + combinedTerm.substring(diffIndex + 1);
+            }
+            return null;
+        }
+
+        // Function to generate the truth table
+        function generateTruthTable(numVars) {
+            currentNumVariables = numVars;
+            tableHeaders.innerHTML = ''; // Clear existing headers
+            tableBody.innerHTML = '';    // Clear existing body
+
+            const variables = variableNames.slice(0, numVars);
+
+            // Create table headers
+            variables.forEach(v => {
+                const th = document.createElement('th');
+                th.className = 'table-header-cell';
+                th.textContent = v;
+                tableHeaders.appendChild(th);
+            });
+            const thY = document.createElement('th');
+            thY.className = 'table-header-cell';
+            thY.textContent = 'Y'; // Output column
+            tableHeaders.appendChild(thY);
+
+            // Create table rows
+            const numRows = Math.pow(2, numVars);
+            for (let i = 0; i < numRows; i++) {
+                const tr = document.createElement('tr');
+                tr.className = 'table-row';
+                const binaryString = decToBinary(i, numVars); // Convert decimal to binary string
+
+                for (let j = 0; j < numVars; j++) {
+                    const td = document.createElement('td');
+                    td.className = 'table-cell';
+                    td.textContent = binaryString[j];
+                    tr.appendChild(td);
+                }
+
+                // Add clickable cell for the output (Y)
+                const tdY = document.createElement('td');
+                tdY.className = 'table-cell';
+                const outputValueSpan = document.createElement('span');
+                outputValueSpan.className = 'output-cell';
+                outputValueSpan.textContent = '0'; // Default output to 0
+                outputValueSpan.dataset.value = '0'; // Store the value in a data attribute
+
+                // Add click listener to toggle the value (0 -> 1 -> X -> 0)
+                outputValueSpan.addEventListener('click', () => {
+                    const currentValue = outputValueSpan.dataset.value;
+                    let newValue = '0';
+                    if (currentValue === '0') {
+                        newValue = '1';
+                    } else if (currentValue === '1') {
+                        newValue = 'X';
+                    } else { // currentValue === 'X'
+                        newValue = '0';
+                    }
+                    outputValueSpan.textContent = newValue;
+                    outputValueSpan.dataset.value = newValue;
+                });
+                tr.appendChild(tdY).appendChild(outputValueSpan);
+                tableBody.appendChild(tr);
+            }
+        }
+
+        // Function to simplify the boolean function using a simplified Quine-McCluskey approach
+        function simplifyBooleanFunction(minterms, dontCares, numVars) {
+            // If no minterms and no don't cares, the function is always 0
+            if (minterms.length === 0 && dontCares.length === 0) {
+                return { expression: "0", primeImplicants: [] };
+            }
+            // If only don't cares, the function is still 0 (unless we assume it's 1, but typically not)
+            if (minterms.length === 0) {
+                 return { expression: "0", primeImplicants: [] };
+            }
+
+            const allTerms = [...minterms, ...dontCares];
+            let groups = {}; // groups[numOnes] = [{binary: '001', originalMinterms: [1], covered: false}]
+
+            // Step 1: Initial Grouping
+            allTerms.forEach(dec => {
+                const binary = decToBinary(dec, numVars);
+                const numOnes = countSetBits(binary);
+                if (!groups[numOnes]) {
+                    groups[numOnes] = [];
+                }
+                groups[numOnes].push({
+                    binary: binary,
+                    originalMinterms: [dec], // Keep track of original minterms covered by this term
+                    isCombined: false // Flag to mark if this term was combined
+                });
+            });
+
+            let primeImplicants = [];
+            let currentGroups = groups;
+
+            // Step 2: Iterative Combination
+            // Loop until no more combinations can be made
+            while (true) {
+                let nextGroups = {};
+                let combinedThisIteration = false;
+                let keys = Object.keys(currentGroups).sort((a, b) => a - b);
+
+                for (let i = 0; i < keys.length - 1; i++) {
+                    const group1 = currentGroups[keys[i]];
+                    const group2 = currentGroups[keys[i + 1]];
+
+                    if (!group1 || !group2) continue;
+
+                    for (const term1 of group1) {
+                        for (const term2 of group2) {
+                            const combinedBinary = compareTerms(term1.binary, term2.binary);
+                            if (combinedBinary) {
+                                combinedThisIteration = true;
+                                term1.isCombined = true;
+                                term2.isCombined = true;
+
+                                const newTerm = {
+                                    binary: combinedBinary,
+                                    originalMinterms: [...new Set([...term1.originalMinterms, ...term2.originalMinterms])],
+                                    isCombined: false
+                                };
+
+                                const numOnes = countSetBits(combinedBinary.replace(/-/g, '0')); // Count '1's in the new combined term, ignoring dashes
+                                if (!nextGroups[numOnes]) {
+                                    nextGroups[numOnes] = [];
+                                }
+                                // Avoid adding duplicate combined terms
+                                if (!nextGroups[numOnes].some(t => t.binary === newTerm.binary)) {
+                                    nextGroups[numOnes].push(newTerm);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Collect prime implicants from currentGroups (those not combined)
+                for (const key in currentGroups) {
+                    currentGroups[key].forEach(term => {
+                        if (!term.isCombined) {
+                            // Ensure no duplicates are added to primeImplicants
+                            if (!primeImplicants.some(pi => pi.binary === term.binary)) {
+                                primeImplicants.push(term);
+                            }
+                        }
+                    });
+                }
+
+                if (!combinedThisIteration) {
+                    break; // No more combinations possible
+                }
+                currentGroups = nextGroups;
+            }
+
+            // Step 3: Identify Essential Prime Implicants and Minimal Cover
+            let finalPrimeImplicants = [];
+            let coveredMinterms = new Set();
+            const remainingMinterms = new Set(minterms); // Only care about original minterms (Y=1)
+
+            // Find essential prime implicants
+            for (const m of remainingMinterms) {
+                let coveringPIs = [];
+                for (const pi of primeImplicants) {
+                    // Check if this PI covers the minterm 'm'
+                    const piBinary = pi.binary;
+                    const mBinary = decToBinary(m, numVars);
+                    let covers = true;
+                    for (let i = 0; i < numVars; i++) {
+                        if (piBinary[i] !== '-' && piBinary[i] !== mBinary[i]) {
+                            covers = false;
+                            break;
+                        }
+                    }
+                    if (covers) {
+                        coveringPIs.push(pi);
+                    }
+                }
+
+                if (coveringPIs.length === 1) { // It's an essential prime implicant
+                    const essentialPI = coveringPIs[0];
+                    if (!finalPrimeImplicants.some(p => p.binary === essentialPI.binary)) {
+                        finalPrimeImplicants.push(essentialPI);
+                        // Mark all minterms covered by this essential PI as covered
+                        essentialPI.originalMinterms.forEach(val => {
+                            if (minterms.includes(val)) { // Only mark original minterms (not don't cares) as covered
+                                coveredMinterms.add(val);
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Remove already covered minterms from remainingMinterms
+            for (const covered of coveredMinterms) {
+                remainingMinterms.delete(covered);
+            }
+
+            // Greedy approach for remaining uncovered minterms
+            // Sort PIs by how many *uncovered* minterms they cover
+            let sortedPIS = primeImplicants.filter(pi => !finalPrimeImplicants.some(p => p.binary === pi.binary));
+
+            while (remainingMinterms.size > 0 && sortedPIS.length > 0) {
+                let bestPI = null;
+                let maxCoverCount = -1; // Initialize with -1 to ensure at least one PI is picked if available
+
+                for (const pi of sortedPIS) {
+                    let currentCoverCount = 0;
+                    for (const m of remainingMinterms) {
+                        const piBinary = pi.binary;
+                        const mBinary = decToBinary(m, numVars);
+                        let covers = true;
+                        for (let i = 0; i < numVars; i++) {
+                            if (piBinary[i] !== '-' && piBinary[i] !== mBinary[i]) {
+                                covers = false;
+                                break;
+                            }
+                        }
+                        if (covers) {
+                            currentCoverCount++;
+                        }
+                    }
+                    // Prioritize PIs that cover more *uncovered* minterms
+                    if (currentCoverCount > maxCoverCount) {
+                        maxCoverCount = currentCoverCount;
+                        bestPI = pi;
+                    }
+                }
+
+                if (bestPI) {
+                    finalPrimeImplicants.push(bestPI);
+                    // Mark newly covered minterms
+                    for (const m of remainingMinterms) {
+                        const piBinary = bestPI.binary;
+                        const mBinary = decToBinary(m, numVars);
+                        let covers = true;
+                        for (let i = 0; i < numVars; i++) {
+                            if (piBinary[i] !== '-' && piBinary[i] !== mBinary[i]) {
+                                covers = false;
+                                break;
+                            }
+                        }
+                        if (covers) {
+                            coveredMinterms.add(m);
+                        }
+                    }
+                    for (const covered of coveredMinterms) {
+                        remainingMinterms.delete(covered);
+                    }
+                    // Remove the chosen PI from sortedPIS
+                    sortedPIS = sortedPIS.filter(pi => pi.binary !== bestPI.binary);
+                } else {
+                    // No more PIs can cover remaining minterms (shouldn't happen with correct algorithm)
+                    break;
+                }
+            }
+
+
+            // Step 4: Convert Prime Implicant binary to variable expression
+            const expressionTerms = finalPrimeImplicants.map(pi => {
+                let termString = '';
+                for (let i = 0; i < numVars; i++) {
+                    if (pi.binary[i] === '0') {
+                        termString += variableNames[i] + "'";
+                    } else if (pi.binary[i] === '1') {
+                        termString += variableNames[i];
+                    }
+                    // If '-', it's not included in the term
+                }
+                return termString || '1'; // If a PI covers everything (e.g., '---'), it's '1'
+            });
+
+            return {
+                expression: expressionTerms.length > 0 ? expressionTerms.join(' + ') : "0",
+                primeImplicants: finalPrimeImplicants
+            };
+        }
+
+        // Function to generate the Karnaugh Map
+        function generateKarnaughMap(minterms, dontCares, numVars, simplifiedImplicants) {
+            karnaughMapContainer.innerHTML = ''; // Clear previous map
+            karnaughMapSection.classList.remove('hidden'); // Show K-map section
+            noKmapMessage.classList.add('hidden'); // Hide no K-map message
+
+            // If no minterms and no don't cares, show message
+            if (minterms.length === 0 && dontCares.length === 0) {
+                noKmapMessage.classList.remove('hidden');
+                return;
+            }
+
+            const kMapValues = Array(Math.pow(2, numVars)).fill('0'); // Initialize all to '0'
+            minterms.forEach(m => kMapValues[m] = '1');
+            dontCares.forEach(dc => kMapValues[dc] = 'X');
+
+            let rows, cols, rowVarNames, colVarNames;
+
+            const grayCode2 = ['0', '1'];
+            const grayCode4 = ['00', '01', '11', '10'];
+
+            // Helper for K-map cell indexing based on Gray code
+            const getKmapCellDecimalIndex = (rowCode, colCode, numVars) => {
+                // Concatenate row and column binary parts and parse as integer
+                return parseInt(rowCode + colCode, 2);
+            };
+
+            // Determine map dimensions and labels
+            if (numVars === 2) {
+                rows = 2; cols = 2;
+                rowVarNames = [variableNames[0]]; // A
+                colVarNames = [variableNames[1]]; // B
+            } else if (numVars === 3) {
+                rows = 2; cols = 4;
+                rowVarNames = [variableNames[0]]; // A
+                colVarNames = [variableNames[1], variableNames[2]]; // BC
+            } else if (numVars === 4) {
+                rows = 4; cols = 4;
+                rowVarNames = [variableNames[0], variableNames[1]]; // AB
+                colVarNames = [variableNames[2], variableNames[3]]; // CD
+            }
+
+            // Set up the main K-map container as a CSS Grid
+            // Grid structure:
+            // Column 1: For row variable label and row headers (50px wide)
+            // Columns 2 to (cols + 1): For column headers and K-map cells (each 50px wide)
+            karnaughMapContainer.style.gridTemplateColumns = `50px repeat(${cols}, 50px)`;
+            // Row 1: For column variable label and column headers (30px high)
+            // Rows 2 to (rows + 1): For row headers and K-map cells (each 50px high)
+            karnaughMapContainer.style.gridTemplateRows = `30px repeat(${rows}, 50px)`;
+            karnaughMapContainer.style.backgroundColor = 'transparent';
+
+
+            // 1. Top-left corner spacer (empty cell)
+            const cornerSpacerDiv = document.createElement('div');
+            cornerSpacerDiv.className = 'kmap-corner-spacer';
+            cornerSpacerDiv.style.gridColumn = '1';
+            cornerSpacerDiv.style.gridRow = '1';
+            karnaughMapContainer.appendChild(cornerSpacerDiv);
+
+            // 2. Column variable label (e.g., CD for 4 vars, B for 2 vars, BC for 3 vars)
+            const colVarLabelDiv = document.createElement('div');
+            colVarLabelDiv.className = 'kmap-label';
+            colVarLabelDiv.textContent = colVarNames.join('');
+            colVarLabelDiv.style.gridColumn = `2 / span ${cols}`; // Starts at column 2, spans across all K-map columns
+            colVarLabelDiv.style.gridRow = '1';
+            colVarLabelDiv.style.textAlign = 'center';
+            colVarLabelDiv.style.alignSelf = 'end';
+            karnaughMapContainer.appendChild(colVarLabelDiv);
+
+            // 3. Add column headers (00, 01, 11, 10)
+            const currentColCodes = (numVars === 2) ? grayCode2 : grayCode4;
+            currentColCodes.forEach((code, index) => {
+                const headerCell = document.createElement('div');
+                headerCell.className = 'kmap-header-cell';
+                headerCell.textContent = code;
+                headerCell.style.gridColumn = `${index + 2}`; // Starts at column 2 (after the row label/header column)
+                headerCell.style.gridRow = '2'; // Second row of the grid (after the column variable label row)
+                karnaughMapContainer.appendChild(headerCell);
+            });
+
+            // 4. Row variable label (e.g., AB for 4 vars, A for 2/3 vars)
+            const rowVarLabelDiv = document.createElement('div');
+            rowVarLabelDiv.className = 'kmap-label';
+            rowVarLabelDiv.textContent = rowVarNames.join('');
+            rowVarLabelDiv.style.gridColumn = '1'; // First column of the grid
+            rowVarLabelDiv.style.gridRow = `2 / span ${rows + 1}`; // Starts at row 2, spans across column headers row AND all K-map rows
+            rowVarLabelDiv.style.writingMode = 'vertical-lr'; // Rotate text
+            rowVarLabelDiv.style.transform = 'rotate(180deg)'; // Rotate to read bottom-up
+            rowVarLabelDiv.style.display = 'flex';
+            rowVarLabelDiv.style.alignItems = 'center';
+            rowVarLabelDiv.style.justifyContent = 'center';
+            // Removed padding-left, relying on flex centering
+            karnaughMapContainer.appendChild(rowVarLabelDiv);
+
+            // 5. Add rows (row headers + K-map cells)
+            const currentRowCodes = (numVars === 2) ? grayCode2 : grayCode4.slice(0, rows); // For 3 variables, use first 2 rows of grayCode4
+            for (let r = 0; r < rows; r++) {
+                // Row header (e.g., 00, 01, 11, 10)
+                const rowHeaderCell = document.createElement('div');
+                rowHeaderCell.className = 'kmap-row-header';
+                rowHeaderCell.textContent = currentRowCodes[r];
+                rowHeaderCell.style.gridColumn = '1'; // Always in the first column
+                rowHeaderCell.style.gridRow = `${r + 3}`; // Starts from row 3 (after col var label and col headers)
+                karnaughMapContainer.appendChild(rowHeaderCell);
+
+                // K-map cells
+                for (let c = 0; c < cols; c++) {
+                    const decimalIndex = getKmapCellDecimalIndex(currentRowCodes[r], currentColCodes[c], numVars);
+
+                    const cell = document.createElement('div');
+                    cell.className = 'kmap-cell';
+                    cell.textContent = kMapValues[decimalIndex];
+                    cell.style.gridColumn = `${c + 2}`; // Starts from column 2 (after row headers)
+                    cell.style.gridRow = `${r + 3}`; // Starts from row 3 (after col var label and col headers)
+
+                    // Check if this cell is covered by any simplified implicant
+                    const cellBinary = decToBinary(decimalIndex, numVars);
+                    const isCovered = simplifiedImplicants.some(pi => {
+                        const piBinary = pi.binary;
+                        let covers = true;
+                        for (let i = 0; i < numVars; i++) {
+                            if (piBinary[i] !== '-' && piBinary[i] !== cellBinary[i]) {
+                                covers = false;
+                                break;
+                            }
+                        }
+                        return covers;
+                    });
+
+                    if (isCovered && (kMapValues[decimalIndex] === '1' || kMapValues[decimalIndex] === 'X')) {
+                        cell.classList.add('covered-by-implicant');
+                    }
+                    karnaughMapContainer.appendChild(cell);
+                }
+            }
+        }
+
+        // Function to generate the logical function (SOP and Simplified)
+        function generateLogicalFunction() {
+            const rows = tableBody.querySelectorAll('tr');
+            let minterms = []; // For Y=1
+            let dontCares = []; // For Y=X
+            let sopMinterms = []; // For SOP expression, only Y=1
+
+            rows.forEach((row, rowIndex) => {
+                const inputs = row.querySelectorAll('td:not(:last-child)'); // Get input cells (A, B, C, D)
+                const outputValueSpan = row.querySelector('.output-cell'); // Get the Y span element
+                const outputValue = outputValueSpan.dataset.value; // Get value from data attribute
+
+                const decimalValue = rowIndex; // The row index is the decimal representation of the minterm
+
+                if (outputValue === '1') {
+                    minterms.push(decimalValue);
+                    let sopMinterm = '';
+                    for (let i = 0; i < currentNumVariables; i++) {
+                        const variableValue = inputs[i].textContent;
+                        if (variableValue === '0') {
+                            sopMinterm += variableNames[i] + "'"; // Complemented variable (e.g., A')
+                        } else {
+                            sopMinterm += variableNames[i];      // Uncomplemented variable (e.g., A)
+                        }
+                    }
+                    sopMinterms.push(sopMinterm);
+                } else if (outputValue === 'X') {
+                    dontCares.push(decimalValue);
+                }
+            });
+
+            resultContainer.classList.remove('hidden'); // Show the result container
+
+            // Display SOP
+            if (sopMinterms.length > 0) {
+                logicalFunctionSOPDisplay.textContent = sopMinterms.join(' + ');
+                logicalFunctionSOPDisplay.classList.remove('hidden');
+                noFunctionMessageSOP.classList.add('hidden');
+            } else {
+                logicalFunctionSOPDisplay.classList.add('hidden');
+                noFunctionMessageSOP.classList.remove('hidden');
+            }
+
+            // Display Simplified Function
+            const { expression: simplifiedExpression, primeImplicants: finalPrimeImplicants } = simplifyBooleanFunction(minterms, dontCares, currentNumVariables);
+            if (simplifiedExpression && simplifiedExpression !== "0") {
+                logicalFunctionSimplifiedDisplay.textContent = simplifiedExpression;
+                logicalFunctionSimplifiedDisplay.classList.remove('hidden');
+                noFunctionMessageSimplified.classList.add('hidden');
+            } else {
+                logicalFunctionSimplifiedDisplay.classList.add('hidden');
+                noFunctionMessageSimplified.classList.remove('hidden');
+            }
+
+            // Generate Karnaugh Map
+            generateKarnaughMap(minterms, dontCares, currentNumVariables, finalPrimeImplicants);
+        }
+
+        // Event listeners
+        numVariablesRadios.forEach(radio => {
+            radio.addEventListener('change', (event) => {
+                generateTruthTable(parseInt(event.target.value));
+            });
+        });
+
+        generateBtn.addEventListener('click', generateLogicalFunction);
+
+        // Initial generation of the truth table on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            generateTruthTable(currentNumVariables);
+        });
+    </script>
+</body>
+</html>
