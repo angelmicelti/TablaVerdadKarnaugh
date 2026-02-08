@@ -1,43 +1,37 @@
-// Nombre de la caché - CAMBIA ESTE NÚMERO CADA VEZ QUE ACTUALICES
+// Nombre de la caché
 const CACHE_NAME = 'generador-logico-v1.0.0';
-const APP_VERSION = '1.0.0';
 
-// Archivos a cachear
+// Archivos a cachear - USANDO RUTAS ABSOLUTAS
 const ARCHIVOS_CACHE = [
-  './',
-  './index.html',
-  'https://unpkg.com/tailwindcss@3.4.10/dist/tailwind.min.css',
-  // Posibles recursos futuros
-  './manifest.json',
-  './version.json'
+  '/',  // Página principal
+  '/index.html',
+  '/manifest.json',
+  '/version.json',
+  'https://unpkg.com/tailwindcss@3.4.10/dist/tailwind.min.css'
 ];
 
-// Evento 'install'
+// Instalar Service Worker
 self.addEventListener('install', event => {
-  console.log('[SW] Instalando versión:', APP_VERSION);
+  console.log('[SW] Instalando...');
   
-  // Fuerza la activación inmediata
+  // Forzar la activación inmediata
   self.skipWaiting();
   
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('[SW] Cacheando archivos esenciales');
+        console.log('[SW] Cacheando archivos');
         return cache.addAll(ARCHIVOS_CACHE);
-      })
-      .then(() => {
-        console.log('[SW] Instalación completada');
-        return self.skipWaiting();
       })
   );
 });
 
-// Evento 'activate'
+// Activar Service Worker
 self.addEventListener('activate', event => {
-  console.log('[SW] Activado versión:', APP_VERSION);
+  console.log('[SW] Activando...');
   
   event.waitUntil(
-    // Limpiar todas las cachés antiguas
+    // Limpiar caches viejas
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
@@ -48,89 +42,51 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-      // Reclamar control inmediatamente sobre todas las pestañas
+      // Tomar control inmediato de todas las pestañas
       return self.clients.claim();
-    }).then(() => {
-      // Enviar mensaje a todas las pestañas para recargar
-      return self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'SW_UPDATED',
-            version: APP_VERSION
-          });
-        });
-      });
     })
   );
 });
 
-// Evento 'fetch'
+// Interceptar solicitudes de red
 self.addEventListener('fetch', event => {
-  // Para index.html, siempre intenta red primero
-  if (event.request.url.includes('/index.html') || 
-      event.request.mode === 'navigate') {
-    console.log('[SW] Fetch para HTML, usando network-first');
-    
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // Si hay respuesta de red, actualiza la caché
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => cache.put(event.request, responseClone));
-          return response;
-        })
-        .catch(() => {
-          // Si falla la red, usa la caché
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
+  // Evitar extensiones de Chrome
+  if (!event.request.url.startsWith('http')) return;
   
-  // Para Tailwind CDN, usa cache-first con validación
-if (event.request.url.includes('unpkg.com/tailwindcss@3.4.10')) {
-    event.respondWith(
-      caches.match(event.request)
-        .then(cachedResponse => {
-          // Hacer fetch en segundo plano para actualizar
-          const fetchPromise = fetch(event.request)
-            .then(networkResponse => {
-              // Actualizar caché con nueva versión
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(event.request, responseClone));
-              return networkResponse;
-            })
-            .catch(() => {}); // Ignorar errores en fetch de fondo
-          
-          // Devolver caché inmediatamente, actualizar en segundo plano
-          return cachedResponse || fetchPromise;
-        })
-    );
-    return;
-  }
-  
-  // Para el resto, cache-first normal
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        return response || fetch(event.request);
+        // Si está en caché, devolverla
+        if (response) {
+          return response;
+        }
+        
+        // Si no está en caché, hacer fetch
+        return fetch(event.request)
+          .then(response => {
+            // No cachear si no es exitosa
+            if (!response || response.status !== 200) {
+              return response;
+            }
+            
+            // Clonar la respuesta
+            const responseToCache = response.clone();
+            
+            // Guardar en caché para futuras peticiones
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+            
+            return response;
+          })
+          .catch(error => {
+            console.log('[SW] Fetch falló:', error);
+            // Si es una navegación, servir index.html
+            if (event.request.mode === 'navigate') {
+              return caches.match('/index.html');
+            }
+          });
       })
   );
-});
-
-// Escuchar mensajes desde la página web
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'CHECK_UPDATE') {
-    // Verificar actualizaciones
-    self.registration.update()
-      .then(() => {
-        console.log('[SW] Actualización verificada');
-      });
-  }
 });
