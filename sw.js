@@ -1,5 +1,5 @@
 // Nombre de la caché
-const CACHE_NAME = 'generador-logico-v1.0.0';
+const CACHE_NAME = 'generador-logico-v1.1.0';
 
 // Archivos a cachear - USANDO RUTAS ABSOLUTAS
 const ARCHIVOS_CACHE = [
