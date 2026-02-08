@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Función Lógica</title>
-    <!-- Tailwind CSS CDN -->
+
+	<link rel="manifest" href="./manifest.json">
+	<meta name="theme-color" content="#8b5cf6">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="Generador Lógico">
+	<link rel="apple-touch-icon" href="icons/icon-192.png">
+	<link rel="icon" type="image/png" href="icons/icon-192.png">
+
+
     <script src="https://unpkg.com/tailwindcss-cdn@3.4.10/tailwindcss.js"></script>
     <style>
         /* Custom styles for better aesthetics */
@@ -742,5 +751,42 @@
             generateTruthTable(currentNumVariables);
         });
     </script>
+		<script>
+	  // Registrar Service Worker
+	  if ('serviceWorker' in navigator) {
+		window.addEventListener('load', function() {
+		  navigator.serviceWorker.register('./sw.js')
+			.then(function(registration) {
+			  console.log('Service Worker registrado con éxito:', registration.scope);
+			  
+			  // Verificar actualizaciones
+			  registration.addEventListener('updatefound', () => {
+				const newWorker = registration.installing;
+				console.log('Nueva versión del Service Worker encontrada:', newWorker);
+				
+				newWorker.addEventListener('statechange', () => {
+				  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+					console.log('Nueva versión disponible. Recargando...');
+					window.location.reload();
+				  }
+				});
+			  });
+			})
+			.catch(function(error) {
+			  console.log('Error al registrar Service Worker:', error);
+			});
+		});
+	  }
+	  
+	  // Detectar cuando hay una nueva versión del service worker
+	  let refreshing = false;
+	  navigator.serviceWorker.addEventListener('controllerchange', () => {
+		if (!refreshing) {
+		  refreshing = true;
+		  window.location.reload();
+		}
+	  });
+	</script>
+
 </body>
 </html>
