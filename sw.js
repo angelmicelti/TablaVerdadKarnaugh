@@ -6,7 +6,7 @@ const APP_VERSION = '1.0.0';
 const ARCHIVOS_CACHE = [
   './',
   './index.html',
-  'https://unpkg.com/tailwindcss-cdn@3.4.10/tailwindcss.js',
+  'https://unpkg.com/tailwindcss@3.4.10/dist/tailwind.min.css',
   // Posibles recursos futuros
   './manifest.json',
   './version.json'
@@ -89,7 +89,7 @@ self.addEventListener('fetch', event => {
   }
   
   // Para Tailwind CDN, usa cache-first con validación
-  if (event.request.url.includes('cdn.tailwindcss.com')) {
+if (event.request.url.includes('unpkg.com/tailwindcss@3.4.10')) {
     event.respondWith(
       caches.match(event.request)
         .then(cachedResponse => {
