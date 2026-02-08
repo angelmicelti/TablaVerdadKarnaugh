@@ -753,26 +753,17 @@
             generateTruthTable(currentNumVariables);
         });
     </script>
-		<script>
-	  // Registrar Service Worker
+	<script>
+	  // Registrar Service Worker CORREGIDO
 	  if ('serviceWorker' in navigator) {
 		window.addEventListener('load', function() {
-		  navigator.serviceWorker.register('./sw.js')
+		  // En GitHub Pages usa la ruta relativa sin ./
+		  navigator.serviceWorker.register('sw.js')
 			.then(function(registration) {
 			  console.log('Service Worker registrado con éxito:', registration.scope);
 			  
-			  // Verificar actualizaciones
-			  registration.addEventListener('updatefound', () => {
-				const newWorker = registration.installing;
-				console.log('Nueva versión del Service Worker encontrada:', newWorker);
-				
-				newWorker.addEventListener('statechange', () => {
-				  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-					console.log('Nueva versión disponible. Recargando...');
-					window.location.reload();
-				  }
-				});
-			  });
+			  // Opcional: Forzar actualización
+			  registration.update();
 			})
 			.catch(function(error) {
 			  console.log('Error al registrar Service Worker:', error);
@@ -780,15 +771,61 @@
 		});
 	  }
 	  
-	  // Detectar cuando hay una nueva versión del service worker
-	  let refreshing = false;
-	  navigator.serviceWorker.addEventListener('controllerchange', () => {
-		if (!refreshing) {
-		  refreshing = true;
-		  window.location.reload();
+	  // Opcional: Notificar al usuario sobre actualizaciones
+	  let newSW = null;
+	  navigator.serviceWorker.addEventListener('controllerchange', function() {
+		if (newSW) {
+		  newSW.addEventListener('statechange', function() {
+			if (this.state === 'activated') {
+			  if (confirm('Hay una nueva versión disponible. ¿Quieres recargar?')) {
+				window.location.reload();
+			  }
+			}
+		  });
 		}
 	  });
 	</script>
+	<!-- Botón de instalación manual (solo visible si la PWA se puede instalar) -->
+<button id="installButton" class="fixed bottom-4 right-4 bg-purple-600 text-white p-3 rounded-full shadow-lg hidden">
+  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l-7-7 7-7m5 14l7-7-7-7"></path>
+  </svg>
+</button>
+
+<script>
+  // Manejar la instalación de la PWA
+  let deferredPrompt;
+  const installButton = document.getElementById('installButton');
+  
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevenir que el navegador muestre el prompt automático
+    e.preventDefault();
+    // Guardar el evento para usarlo después
+    deferredPrompt = e;
+    // Mostrar nuestro botón de instalación
+    installButton.classList.remove('hidden');
+    
+    installButton.addEventListener('click', () => {
+      // Mostrar el prompt de instalación
+      deferredPrompt.prompt();
+      // Esperar a que el usuario responda
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('Usuario instaló la PWA');
+        }
+        deferredPrompt = null;
+        // Ocultar el botón
+        installButton.classList.add('hidden');
+      });
+    });
+  });
+  
+  // Ocultar el botón si ya está instalado
+  window.addEventListener('appinstalled', () => {
+    console.log('PWA instalada');
+    installButton.classList.add('hidden');
+  });
+</script>
 
 </body>
 </html>
