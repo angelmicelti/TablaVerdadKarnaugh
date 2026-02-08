@@ -3,20 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+	    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+	
     <title>Generador de Función Lógica</title>
-
-	<link rel="manifest" href="manifest.json">
-	<meta name="theme-color" content="#8b5cf6">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="apple-mobile-web-app-title" content="Generador Lógico">
-	<link rel="apple-touch-icon" href="icons/icon-192.png">
-	<link rel="icon" type="image/png" href="icons/icon-192.png">
-	<link href="https://unpkg.com/tailwindcss@3.4.10/dist/tailwind.min.css" rel="stylesheet">
-
-
-
-
+	
+	
+	  <!-- Favicon y Apple Touch Icon -->
+    <link rel="icon" href="icons/icon-192x192.png" type="image/png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+	
+	
+    <!-- Tailwind CSS CDN -->
+    <script src="https://unpkg.com/tailwindcss-cdn@3.4.10/tailwindcss.js"></script>
     <style>
         /* Custom styles for better aesthetics */
         body {
@@ -753,79 +759,5 @@
             generateTruthTable(currentNumVariables);
         });
     </script>
-	<script>
-	  // Registrar Service Worker CORREGIDO
-	  if ('serviceWorker' in navigator) {
-		window.addEventListener('load', function() {
-		  // En GitHub Pages usa la ruta relativa sin ./
-		  navigator.serviceWorker.register('sw.js')
-			.then(function(registration) {
-			  console.log('Service Worker registrado con éxito:', registration.scope);
-			  
-			  // Opcional: Forzar actualización
-			  registration.update();
-			})
-			.catch(function(error) {
-			  console.log('Error al registrar Service Worker:', error);
-			});
-		});
-	  }
-	  
-	  // Opcional: Notificar al usuario sobre actualizaciones
-	  let newSW = null;
-	  navigator.serviceWorker.addEventListener('controllerchange', function() {
-		if (newSW) {
-		  newSW.addEventListener('statechange', function() {
-			if (this.state === 'activated') {
-			  if (confirm('Hay una nueva versión disponible. ¿Quieres recargar?')) {
-				window.location.reload();
-			  }
-			}
-		  });
-		}
-	  });
-	</script>
-	<!-- Botón de instalación manual (solo visible si la PWA se puede instalar) -->
-<button id="installButton" class="fixed bottom-4 right-4 bg-purple-600 text-white p-3 rounded-full shadow-lg hidden">
-  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l-7-7 7-7m5 14l7-7-7-7"></path>
-  </svg>
-</button>
-
-<script>
-  // Manejar la instalación de la PWA
-  let deferredPrompt;
-  const installButton = document.getElementById('installButton');
-  
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevenir que el navegador muestre el prompt automático
-    e.preventDefault();
-    // Guardar el evento para usarlo después
-    deferredPrompt = e;
-    // Mostrar nuestro botón de instalación
-    installButton.classList.remove('hidden');
-    
-    installButton.addEventListener('click', () => {
-      // Mostrar el prompt de instalación
-      deferredPrompt.prompt();
-      // Esperar a que el usuario responda
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('Usuario instaló la PWA');
-        }
-        deferredPrompt = null;
-        // Ocultar el botón
-        installButton.classList.add('hidden');
-      });
-    });
-  });
-  
-  // Ocultar el botón si ya está instalado
-  window.addEventListener('appinstalled', () => {
-    console.log('PWA instalada');
-    installButton.classList.add('hidden');
-  });
-</script>
-
 </body>
 </html>
